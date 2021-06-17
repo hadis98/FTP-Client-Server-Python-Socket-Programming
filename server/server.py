@@ -37,3 +37,25 @@ def ListItems():
                 res += f'> {item.name} \n'
         res += f'total size: {totalSize}b \n'
         return res
+
+def changeDir(conn,data):
+    path = os.getcwd()
+    if 'main' in path:
+        if path.endswith('main') and data =='cd ..':
+            message = 'Bad Request!!'
+            conn.sendall(message.encode())
+        else:
+            found =0
+            destDir = data[3:]
+            with os.scandir() as items:
+                for item in items:
+                    if destDir == item.name or destDir =='..':
+                        os.chdir(destDir)
+                        found =1
+                        break
+                if found:
+                    message = 'directory changed successfully'
+                    conn.sendall(message.encode())
+                else:
+                    message = 'Bad Request... directory not found...'
+                    conn.sendall(message.encode())
