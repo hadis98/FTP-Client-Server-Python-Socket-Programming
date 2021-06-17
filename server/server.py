@@ -59,3 +59,31 @@ def changeDir(conn,data):
                 else:
                     message = 'Bad Request... directory not found...'
                     conn.sendall(message.encode())
+
+def downloadFile(conn,data):
+    found =0
+    path = os.getcwd()
+    fileName = data[5:]
+    print('fileName: '+fileName)
+    if 'main' in path:
+        print('fileName: '+fileName)
+        items = os.scandir()
+        for item in items:
+            print(item.name)
+            if fileName == item.name:
+                found =1
+                break
+        if found:
+            portRandom =random.randrange(3000,50000)
+            conn.sendall(str(portRandom).encode())
+            dwldSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            dwldSocket.bind((HOST,portRandom))
+            dwldSocket.listen()
+            conn2 , addr = dwldSocket.accept() #Wait for an incoming connection. Return a new socket representing the connection, and the address of the client.
+            with open(fileName,'rb') as destFile:
+                conn2.sendall(destFile.read())
+                destFile.close()
+                conn2.close()
+        else:
+            conn.sendall('Bad Request....\nWrong Command!!...'.encode())    
+        
