@@ -23,3 +23,17 @@ def printWorkingDir():
         pos = path.index('main')
         ans =path[pos+4:len(path)]
         return ans
+
+def ListItems():
+    with os.scandir() as items:
+        res =''
+        totalSize=0
+        for item in items:
+            if item.is_file():
+                size = item.stat().st_size
+                res += f'{item.name} \t {size}b \n'
+                totalSize +=size
+            elif item.is_dir():
+                res += f'> {item.name} \n'
+        res += f'total size: {totalSize}b \n'
+        return res
