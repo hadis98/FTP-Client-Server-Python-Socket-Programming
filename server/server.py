@@ -13,6 +13,7 @@ QUIT                :exit
     """
     return data
 
+# a function that prints current directory and its sizes
 def printWorkingDir():
     path = os.getcwd()
     ans =''
@@ -24,6 +25,7 @@ def printWorkingDir():
         ans =path[pos+4:len(path)]
         return ans
 
+# a function that print files in the directory
 def ListItems():
     with os.scandir() as items:
         res =''
@@ -38,12 +40,14 @@ def ListItems():
         res += f'total size: {totalSize}b \n'
         return res
 
-def changeDir(conn,data):
+# a function that change the directory
+# attention: you can't go to server directory , if you try: it gives 'bad request'
+def changeDir(connection,data):
     path = os.getcwd()
     if 'main' in path:
         if path.endswith('main') and data =='cd ..':
             message = 'Bad Request!!'
-            conn.sendall(message.encode())
+            connection.sendall(message.encode())
         else:
             found =0
             destDir = data[3:]
@@ -55,12 +59,15 @@ def changeDir(conn,data):
                         break
                 if found:
                     message = 'directory changed successfully'
-                    conn.sendall(message.encode())
+                    connection.sendall(message.encode())
                 else:
                     message = 'Bad Request... directory not found...'
-                    conn.sendall(message.encode())
+                    connection.sendall(message.encode())
 
-def downloadFile(conn,data):
+
+# a function that downloads a file or image from server 
+# and save it in current directory
+def downloadFile(connection,data):
     found =0
     path = os.getcwd()
     fileName = data[5:]
@@ -75,15 +82,47 @@ def downloadFile(conn,data):
                 break
         if found:
             portRandom =random.randrange(3000,50000)
-            conn.sendall(str(portRandom).encode())
+            connection.sendall(str(portRandom).encode())
             dwldSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             dwldSocket.bind((HOST,portRandom))
             dwldSocket.listen()
-            conn2 , addr = dwldSocket.accept() #Wait for an incoming connection. Return a new socket representing the connection, and the address of the client.
+            connection2 , addr = dwldSocket.accept() #Wait for an incoming connection. Return a new socket representing the connection, and the address of the client.
             with open(fileName,'rb') as destFile:
-                conn2.sendall(destFile.read())
+                connection2.sendall(destFile.read())
                 destFile.close()
-                conn2.close()
+                connection2.close()
         else:
-            conn.sendall('Bad Request....\nWrong Command!!...'.encode())    
+            connection.sendall('Bad Request....\nWrong Command!!...'.encode())    
         
+
+# main part
+os.chdir('main')
+HOST = '127.0.0.1'
+PORT = 2121
+serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+serverSocket.bind((HOST,PORT))
+serverSocket.listen()
+conn,addr = serverSocket.accept()
+print(f'connected with:{HOST,PORT} ')
+
+while True:
+    print('waitaing to receive data.....')
+    Data = conn.recv(1024).decode()
+    print(f'\nrecieved instruction: {Data}\n')
+
+    if Data =='help':
+       conn.sendall(ChooseCommands().encode()) 
+    elif Data =='quit':
+        break
+    elif Data == 'pwd':
+        conn.sendall(printWorkingDir().encode())
+    elif Data =='list':
+        data = ListItems()
+        conn.sendall(data.encode())
+    elif Data.startswith('dwld'):
+        downloadFile(conn,Data)
+    elif Data.startswith('cd'):
+        changeDir(conn,Data)
+    else:
+        message = 'Bad Request....\nWrong Command!!...'
+        conn.sendall(message.encode())
